@@ -44,6 +44,17 @@ function makeGraphs(error, crimeJson, seoulJson) {
   });
   console.log("regionNameMap:", regionNameMap);
 
+
+  // --------------------------------------------------
+  // sum of crime
+  // --------------------------------------------------
+
+  var totalCrimeCount = ndx.groupAll().reduceSum(function(d) {
+    return d.crime_count;
+  });
+
+
+
   // --------------------------------------------------
   // 4) dimensions
   // --------------------------------------------------
@@ -112,7 +123,11 @@ function makeGraphs(error, crimeJson, seoulJson) {
   // --------------------------------------------------
   // 6) 차트 선언
   // --------------------------------------------------
-  var totalND   = dc.numberDisplay("#total-count-nd");
+  totalND
+    .formatNumber(d3.format("d"))
+    .valueAccessor(function(d) { return d; })
+    .group(totalCrimeCount);
+
   var yearChart = dc.barChart("#year-chart");
   var rateChart = dc.barChart("#crime-rate-chart");
   var seoulMap  = dc.geoChoroplethChart("#seoul-map");
