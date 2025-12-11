@@ -178,7 +178,8 @@ function makeGraphs(error, crimeJson, seoulJson) {
       totalKey: "crime_sum",
       colors: [
       "#fee5d9",
-      "#fcae91",
+      "#fcbba1",
+      "#fc9272",
       "#fb6a4a",
       "#de2d26",
       "#a50f15"
@@ -390,6 +391,36 @@ function makeGraphs(error, crimeJson, seoulJson) {
     seoulMap
       .colors(newColorScale)
       .colorDomain([minVal, maxVal]);
+
+
+    var legendContainer = d3.select("#map-legend");
+    legendContainer.selectAll("*").remove(); // 기존 범례 비우기
+
+    legendContainer
+      .append("div")
+      .attr("class", "map-legend-title")
+      .text(conf.label + " (avg)");
+
+    var legendItem = legendContainer.selectAll(".legend-item")
+      .data(newColorScale.range())
+      .enter()
+      .append("div")
+      .attr("class", "legend-item");
+
+    legendItem.append("span")
+      .attr("class", "legend-swatch")
+      .style("background-color", function(c) { return c; });
+
+    var formatLegend = d3.format(".2s");  // 1.2k, 3.4M 이런 식 표기
+
+    legendItem.append("span")
+      .attr("class", "legend-label")
+      .text(function(c) {
+        var ext = newColorScale.invertExtent(c); // [low, high]
+        var from = ext[0] == null ? minVal : ext[0];
+        var to   = ext[1] == null ? maxVal : ext[1];
+        return formatLegend(from) + " – " + formatLegend(to);
+      });
   }
   // --------------------------------------------------
   // 19) 전역 metric 변경 함수 (HTML에서 직접 호출)

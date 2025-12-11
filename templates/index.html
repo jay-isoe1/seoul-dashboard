@@ -30,16 +30,48 @@
       min-height: 250px;
     }
 
-    #seoul-map {
+    #seoul-map svg path {
+      stroke: #111111ff;
+      stroke-width: 0.5;
       min-height: 350px;
       height: 350px;
       fill-opacity: 1 !important;
+    }
+
+    .map-legend {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .map-legend-title {
+      width: 100%;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-right: 10px;
+      margin-bottom: 4px;
+    }
+
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      margin-right: 4px;
+      border: 1px solid #ccc;
     }
 
     .dc-chart svg {
       width: 100%;
       height: 100%;
     }
+
+
 
     .metric {
       text-align: center;
@@ -121,6 +153,7 @@
           <div class="panel-heading">Crime Rate by District</div>
           <div class="panel-body">
             <div id="seoul-map" class="dc-chart"></div>
+            <div id="map-legend" class="map-legend"></div>
           </div>
         </div>
 
