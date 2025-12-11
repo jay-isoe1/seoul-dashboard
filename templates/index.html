@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='lib/css/keen-dashboards.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='lib/css/dc.css') }}">
 
-  <!-- ===== Custom CSS (없어도 괜찮음) ===== -->
+  <!-- ===== Custom CSS ===== -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 
   <!-- ===== Dashboard Layout Styling ===== -->
@@ -70,9 +70,30 @@
   </nav>
 
   <!-- ===== Main Container ===== -->
-  <div class="container-fluid">
+  <div class="container-fluid" style="margin-bottom: 10px;">
+    <div id="metric-selector" class="btn-group btn-group-sm">
+      <button id="metric-btn-crime_rate"
+              class="btn btn-default active"
+              data-metric="crime_rate"
+              onclick="setMetric('crime_rate')">
+        Crime
+      </button>
 
-    <div class="row">
+      <button id="metric-btn-park_area"
+              class="btn btn-default"
+              data-metric="park_area"
+              onclick="setMetric('park_area')">
+        Park Area
+      </button>
+
+      <button id="metric-btn-gdp"
+              class="btn btn-default"
+              data-metric="gdp"
+              onclick="setMetric('gdp')">
+        GDP
+      </button>
+    </div>
+
 
       <!-- ===== Left Column (Year + Histogram) ===== -->
       <div class="col-md-6">
@@ -81,11 +102,11 @@
           <div class="panel-heading">Crime Records by Year</div>
           <div class="panel-body">
             <div id="year-chart" class="dc-chart"></div>
-          </div>
+            </div>
         </div>
 
         <div class="panel panel-default">
-          <div class="panel-heading">Crime Rate Distribution</div>
+          <div class="panel-heading">Metric Disbribution</div>
           <div class="panel-body">
             <div id="crime-rate-chart" class="dc-chart"></div>
           </div>
@@ -108,7 +129,7 @@
           <div class="panel-body">
             <div class="metric">
               <div id="total-count-nd" class="metric-value"></div>
-              <div class="metric-label">Total crime records in dataset</div>
+              <div class="metric-label">Total of Selected Metric</div>
             </div>
           </div>
         </div>
