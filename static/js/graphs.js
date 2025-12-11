@@ -252,6 +252,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   // 10) total
   // --------------------------------------------------
   totalND
+    .height(200)
     .formatNumber(d3.format(",.0f"))
     .group(totalsGroup)
     .valueAccessor(function(d) {
@@ -359,8 +360,12 @@ function makeGraphs(error, crimeJson, seoulJson) {
       if (!value || isNaN(value)) {
         return "Region: " + name + "\nNo data";
       }
+      var fmt = (currentMetric === "gdp") 
+        ? d3.format(".2s") 
+        : d3.format(".2f");
+
       return "Region: " + name + 
-              "\nAverage " + label + ": " + value.toFixed(2);
+              "\nAverage " + label + ": " + fmt(value);
     });
   // --------------------------------------------------
   // 14) 모든 차트 렌더링
