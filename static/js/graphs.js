@@ -176,7 +176,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   // --------------------------------------------------
   var mapContainer = document.getElementById("seoul-map");
   var mapWidth  = mapContainer ? mapContainer.clientWidth : 600;
-  var mapHeight = 300;
+  var mapHeight = 350;
 
   var projection = d3.geo.mercator()
     .scale(1)
