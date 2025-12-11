@@ -21,6 +21,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   data.forEach(function(d) {
     d.year       = +d.year;
     d.crime_rate = +d.crime_rate;
+    d.crime_count = +d.crime_count;
     d.pop        = +d.pop;
     d.park_area  = +d.park_area;
     d.gdp        = +d.gdp;
@@ -52,7 +53,6 @@ function makeGraphs(error, crimeJson, seoulJson) {
   var totalCrimeCount = ndx.groupAll().reduceSum(function(d) {
     return d.crime_count;
   });
-
 
 
   // --------------------------------------------------
@@ -123,11 +123,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   // --------------------------------------------------
   // 6) 차트 선언
   // --------------------------------------------------
-  totalND
-    .formatNumber(d3.format("d"))
-    .valueAccessor(function(d) { return d; })
-    .group(totalCrimeCount);
-
+  var totalND   = dc.numberDisplay("#total-count-nd");
   var yearChart = dc.barChart("#year-chart");
   var rateChart = dc.barChart("#crime-rate-chart");
   var seoulMap  = dc.geoChoroplethChart("#seoul-map");
@@ -138,7 +134,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   totalND
     .formatNumber(d3.format("d"))
     .valueAccessor(function(d) { return d; })
-    .group(all);
+    .group(totalCrimeCount);
 
   // --------------------------------------------------
   // 8) 연도 BarChart
