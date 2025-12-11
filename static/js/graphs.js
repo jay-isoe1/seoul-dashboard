@@ -25,12 +25,24 @@ function makeGraphs(error, crimeJson, seoulJson) {
     d.park_area  = +d.park_area;
     d.gdp        = +d.gdp;
     d.region_id  = String(d.region_id).trim();
+    d.region_name = d.region_name;
   });
 
   // --------------------------------------------------
   // 3) crossfilter 생성
   // --------------------------------------------------
   var ndx = crossfilter(data);
+
+
+  // --------------------------------------------------
+  // region
+  // --------------------------------------------------
+
+  var regionNameMap = {};
+  data.forEach(function(d) {
+    regionNameMap[d.region_id] = d.region_name;
+  });
+  console.log("regionNameMap:", regionNameMap);
 
   // --------------------------------------------------
   // 4) dimensions
@@ -202,13 +214,14 @@ function makeGraphs(error, crimeJson, seoulJson) {
     .overlayGeoJson(seoulJson.features, "region", featureKey)
     .projection(projection)
     .title(function(d) {
-      // d는 { key: '11110', value: 숫자 또는 undefined } 형태
-      if (!d || typeof d.value !== "number" || isNaN(d.value)) {
-        return "Region: " + (d ? d.key : "") + "\nNo data";
-      }
+      var id = d.key;
+      var name = regionNameMap[id] || id;
+      var avg = d.value;
 
-      return "Region: " + d.key +
-            "\nAvg crime rate: " + d.value.toFixed(1);
+      if (!avg || isNaN(avg)) {
+        return "Region: " + name + "\nNo data";
+      }
+      return "Region: " + name + "\nAverage Crime Rate: " + avg.toFixed(2);
     });
   // --------------------------------------------------
   // 14) 모든 차트 렌더링
