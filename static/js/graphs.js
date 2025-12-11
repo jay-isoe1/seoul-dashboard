@@ -150,8 +150,6 @@ function makeGraphs(error, crimeJson, seoulJson) {
   var colorScale = d3.scale.quantize()
     .domain([minAvg, maxAvg])
     .range([
-      "#f7fbff",
-      "#deebf7",
       "#c6dbef",
       "#9ecae1",
       "#6baed6",
