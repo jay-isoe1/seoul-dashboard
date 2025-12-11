@@ -375,6 +375,24 @@ function makeGraphs(error, crimeJson, seoulJson) {
       .x(d3.scale.linear().domain(conf.extent))
       .xAxisLabel(conf.label);
 
+    if (currentMetric === "gdp")  {
+      rateChart.xAxis().tickFormat(d3.format(".2s"));
+    } else {
+      rateChart.xAxis().tickFormat(d3.format("d"));
+    }
+
+    if (currentMetric === "gdp") {
+      totalND.formatNumber(d3.format(".2s"));
+    } else {
+      totalND.formatNumber(d3.format(",.0f"));
+    }
+
+    totalND
+      .group(totalsGroup)
+      .valueAccessor(function(d) {
+        return d[conf.totalKey] || 0;
+      });
+
     // 2) color domain update
     var vals = metricMapGroup.all().map(d => d.value);
     var minVal = d3.min(vals);
