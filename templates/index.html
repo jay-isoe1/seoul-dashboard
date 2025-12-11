@@ -4,13 +4,12 @@
   <meta charset="utf-8">
   <title>Seoul Crime Dashboard</title>
 
-  <!-- Bootstrap -->
-  <link rel="stylesheet"
-        href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+   {# Bootstrap / Keen / dc.css #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='lib/css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='lib/css/keen-dashboards.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='lib/css/dc.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 
-  <!-- DC.js 기본 스타일 -->
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='lib/css/dc.css') }}">
 
   <!-- 레이아웃 / 차트용 커스텀 스타일 -->
   <style>
