@@ -144,6 +144,91 @@ function makeGraphs(error, crimeJson, seoulJson) {
     }
   );
 
+
+  //Correlation cal
+  var corrStatsByRegion = regionIdDim.group().reduce(
+    function(p, v) {
+      p.n += 1;
+
+      var c = v.crime_rate, k = v.park_area, g = v.gdp;
+
+      p.sumCrime += c; p.sumSqCrime += c * c;
+      p.sumPark += k;  p.sumSqPark += k * k;
+      p.sumGdp += g;  p.sumSqGdp += g * g;
+
+      p.sumCrimePark += c * k;
+      p.sumCrimeGdp += c * g;
+      
+      return p;
+    },
+    function(p, v) {
+      p.n -= 1;
+
+      var c = v.crime_rate, k = v.park_area, g = v.gdp;
+
+      p.sumCrime -= c; p.sumSqCrime -= c * c;
+      p.sumPark -= k;  p.sumSqPark -= k * k;
+      p.sumGdp -= g;  p.sumSqGdp -= g * g; 
+
+      p.sumCrimePark -= c * k;
+      p.sumCrimeGdp -= c * g;
+
+      return p;
+    },
+    function() {
+      return {
+        n: 0,
+        sumCrime: 0, sumSqCrime: 0,
+        sumPark: 0,  sumSqPark: 0,
+        sumGdp: 0,    sumSqGdp: 0,
+        sumCrimePark: 0,
+        sumCrimeGdp: 0
+      };
+    }
+  );
+
+  // --------------------------------------------------
+  // 6) Person
+
+  function pearsonFromSums(n, sumX, sumY, sumXX, sumYY, sumXY) {
+    if (n < 2)  return null;
+    var num = (n * sumXY) - (sumX * sumY);
+    var denX = (n * sumXX) - (sumX * sumX);
+    var denY = (n * sumYY) - (sumY * sumY);
+    var den = Math.sqrt(denX * denY);
+    if (!isFinite(den) || den === 0) return null;
+    var r = num/den;
+    return Math.max(-1, Math.min(1, r));
+  }
+
+  function getRegionCorrelation(p, m1, m2) {
+    if (!p) return null;
+
+    if ((m1 === "crime_rate") && (m2 === "park_area") || (m1=== "park_area" && m2 === "crime_rate")) {
+      return pearsonFromSums(
+        p.n,
+        p.sumCrime,
+        p.sumPark,
+        p.sumSqCrime,
+        p.sumSqPark,
+        p.sumCrimePark
+      );
+    }
+
+    if ((m1 === "crime_rate") && (m2 === "gdp") || (m1=== "gdp" && m2 === "crime_rate")) {
+      return pearsonFromSums(
+        p.n,
+        p.sumCrime,
+        p.sumGdp,
+        p.sumSqCrime,
+        p.sumSqGdp,
+        p.sumCrimeGdp
+      );
+    }
+    return null;
+  }
+
+
   //Extent cal
   var yearExtent = d3.extent(data, function(d) {
     return d.year;
@@ -164,7 +249,8 @@ function makeGraphs(error, crimeJson, seoulJson) {
   // --------------------------------------------------
   // Metric
   // --------------------------------------------------
-  var currentMetric = "crime_rate";
+  var selectedMetrics = ["crime_rate"];
+  var currentMetric = "crime_rate"; // metricMapGroup
 
   var metricConfig = {
     "crime_rate": {
@@ -236,6 +322,18 @@ function makeGraphs(error, crimeJson, seoulJson) {
         var stats = d.value || {};
         var val = conf.mapAccessor(stats) || 0;
         return { key: d.key, value: val };
+      });
+    }
+  };
+
+
+  var corrMapGroup = {
+    all : function() {
+      if (!selectedMetrics || selectedMetrics.length !==2) return [];
+      var m1 = selectedMetrics[0], m2 = selectedMetrics[1];
+
+      return corrStatsByRegion.all().map(function(d) {
+        return {key: d.key, value: getRegionCorrelation(d.value, m1, m2)};
       });
     }
   };
@@ -343,35 +441,45 @@ function makeGraphs(error, crimeJson, seoulJson) {
     .valueAccessor(function(d) {      // 🔥 d는 "숫자 value" 그대로!
       return d.value;            
     })
-    .colors(colorScale)
     .colorAccessor(function(v) {
       return v;
     })
     .overlayGeoJson(seoulJson.features, "region", featureKey)
-    .projection(projection)
-    .title(function(d) {
-      var id = d.key;
-      var name = regionNameMap[id] || id;
-      var value = d.value;
+    .projection(projection);
 
-      var conf = metricConfig[currentMetric];
-      var label = conf.label;
 
-      if (!value || isNaN(value)) {
-        return "Region: " + name + "\nNo data";
-      }
-      var fmt = (currentMetric === "gdp") 
-        ? d3.format(".2s") 
-        : d3.format(".2f");
 
-      return "Region: " + name + 
-              "\nAverage " + label + ": " + fmt(value);
-    });
   // --------------------------------------------------
-  // 14) 모든 차트 렌더링
+  // 14) Single Metric
   // --------------------------------------------------
-  function applyMetricToCharts() {
-    var conf = metricConfig[currentMetric];
+  function applySingleMetricMode(metric) {
+    currentMetric = metric;
+    var conf = metricConfig[metric];
+
+    var vals = metricMapGroup.all().map(d => d.value).filter(v => v != null);
+    var minVal = d3.min(vals), maxVal = d3.max(vals);
+    if (!isFinite(minVal) || !isFinite(maxVal) || minVal === maxVal) {
+      minVal = 0;
+      maxVal = 1;
+    }
+
+    var scale = d3.scale.quantize()
+      .domain([minVal, maxVal])
+      .range(conf.colors);
+
+
+    seoulMap
+      .group(metricMapGroup)
+      .colors(scale)
+      .colorDomain([minVal, maxVal])
+      .colorAccessor(function(v) { return v;})
+      .title(function(d) {
+        var name = regionNameMap[d.key] || d.key;
+        if (d.value == null) return "region: " + name + "\nNo data";
+
+        var fmt = (metric === "gdp") ? d3.format(".2s") : d3.format(".2f");
+        return "Region: " + name + "\nAverage " + conf.label + ": " + fmt(d.value);
+      });
 
     // 1) distribution chart update
     rateChart
@@ -380,73 +488,112 @@ function makeGraphs(error, crimeJson, seoulJson) {
       .x(d3.scale.linear().domain(conf.extent))
       .xAxisLabel(conf.label);
 
-    if (currentMetric === "gdp")  {
-      rateChart.xAxis().tickFormat(d3.format(".2s"));
-    } else {
-      rateChart.xAxis().tickFormat(d3.format("d"));
-    }
-
-    if (currentMetric === "gdp") {
-      totalND.formatNumber(d3.format(".2s"));
-    } else {
-      totalND.formatNumber(d3.format(",.0f"));
-    }
 
     totalND
+      .formatNumber(metric === "gdp" ? d3.format(",.2s") : d3.format(",.0f"))
       .group(totalsGroup)
-      .valueAccessor(function(d) {
-        return d[conf.totalKey] || 0;
-      });
+      .valueAccessor(function(d) { return d[conf.totalKey] || 0; });
 
-    // 2) color domain update
-    var vals = metricMapGroup.all().map(d => d.value);
-    var minVal = d3.min(vals);
-    var maxVal = d3.max(vals);
+    updateLegend(conf.label + " (avg)", scale);
+  
+  }
 
-    if (!isFinite(minVal) || !isFinite(maxVal) || minVal === maxVal) {
-      minVal = 0;
-      maxVal = 1;
-    }
-    var newColorScale = d3.scale.quantize()
-    .domain([minVal, maxVal])
-    .range(conf.colors);
+  // --------------------------------------------------
+  // 14) correlation metric
+  // --------------------------------------------------
+
+  function applyCorrelationMode(m1, m2) {
+    var label = metricConfig[m1].label + "x" + metricConfig[m2].label;
+
+    var corrColors = [
+      "#67001f","#b2182b","#d6604d","#f4a582",
+      "#f7f7f7",
+      "#92c5de","#4393c3","#2166ac","#053061"
+    ]
+
+    var corrScale = d3.scale.quantize()
+      .domain([-1, 1])
+      .range(corrColors);
+
 
     seoulMap
-      .colors(newColorScale)
-      .colorDomain([minVal, maxVal]);
+      .group(corrMapGroup)
+      .colors(corrScale)
+      .colorDomain([-1, 1])
+      .colorAccessor(function(v) {return v; })
+      .title(function(d) {
+        var name = regionNameMap[d.key] || d.key;
+        if (d.value === null) return "region: " + name + "\nCorrelation: N/A";
+        return "Region: " + name + "\n" + label + " correlation (r): " + d3.format(".2f")(d.value);
+      });
+
+    rateChart.group({ all: function(){ return []; } });
+    totalND.valueAccessor(function(){ return 0; });
+
+    updateLegend(label + " (Pearson r)", corrScale);
+  
+  }
+
+  function updateLegend(title, scale) {
+    var legend = d3.select("#map-legend");
+    legend.selectAll("*").remove();
 
 
-    var legendContainer = d3.select("#map-legend");
-    legendContainer.selectAll("*").remove(); // 기존 범례 비우기
-
-    legendContainer
-      .append("div")
+    legend.append("div")
       .attr("class", "map-legend-title")
-      .text(conf.label + " (avg)");
+      .text(title);
 
-    var legendItem = legendContainer.selectAll(".legend-item")
-      .data(newColorScale.range())
+    var items = legend.selectAll(".legend-item")
+      .data(scale.range())
       .enter()
       .append("div")
       .attr("class", "legend-item");
 
-    legendItem.append("span")
+    items.append("span")
       .attr("class", "legend-swatch")
-      .style("background-color", function(c) { return c; });
+      .style("background-color", function(d){ return d;});
 
-    var formatLegend = d3.format(".2s");  // 1.2k, 3.4M 이런 식 표기
-
-    legendItem.append("span")
+    items.append("span")
       .attr("class", "legend-label")
       .text(function(c) {
-        var ext = newColorScale.invertExtent(c); // [low, high]
-        var from = ext[0] == null ? minVal : ext[0];
-        var to   = ext[1] == null ? maxVal : ext[1];
-        return formatLegend(from) + " – " + formatLegend(to);
+        var e = scale.invertExtent(c);
+        return d3.format(".2f")(e[0]) + " - " + d3.format(".2f")(e[1]);
       });
   }
   // --------------------------------------------------
-  // 19) 전역 metric 변경 함수 (HTML에서 직접 호출)
+  // 19) UI + metric logic (모두 setMetric 밖에!)
+  // --------------------------------------------------
+  function updateMetricUI() {
+    d3.selectAll('#metric-selector button').classed('active', false);
+
+    selectedMetrics.forEach(function(m) {
+      d3.select('#metric-btn-' + m).classed('active', true);
+    });
+  }
+
+  function applyMetricLogic() {
+    // 0개 선택 허용
+    if (selectedMetrics.length === 0) {
+      seoulMap
+        .group({ all: function(){ return []; } })
+        .title(function(){ return "Select a metric"; });
+
+      rateChart.group({ all: function(){ return []; } });
+      totalND.valueAccessor(function(){ return 0; });
+
+      updateLegend("Select a metric", d3.scale.quantize().domain([0,1]).range(["#ffffff"]));
+      return;
+    }
+
+    if (selectedMetrics.length === 1) {
+      applySingleMetricMode(selectedMetrics[0]);
+    } else if (selectedMetrics.length === 2) {
+      applyCorrelationMode(selectedMetrics[0], selectedMetrics[1]);
+    }
+  }
+
+  // --------------------------------------------------
+  // 20) 전역 metric 변경 함수 (HTML에서 직접 호출)
   // --------------------------------------------------
   window.setMetric = function(metric) {
     if (!metricConfig[metric]) {
@@ -454,23 +601,29 @@ function makeGraphs(error, crimeJson, seoulJson) {
       return;
     }
 
-    currentMetric = metric;
-    console.log(">>> setMetric called:", metric);
+    var idx = selectedMetrics.indexOf(metric);
 
-    // 버튼 활성화 스타일 업데이트
-    d3.selectAll('#metric-selector button').classed("active", false);
-    d3.select('#metric-btn-' + metric).classed("active", true);
+    if (idx !== -1) {
+      // ✅ 다시 누르면 무조건 취소 (마지막도 취소 가능)
+      selectedMetrics.splice(idx, 1);
+    } else {
+      // ✅ 새 선택 (최대 2개)
+      if (selectedMetrics.length < 2) selectedMetrics.push(metric);
+      else return;
+    }
 
-    // 차트 / 지도 / total 업데이트
-    applyMetricToCharts();
+    console.log("AFTER:", selectedMetrics);
+
+    updateMetricUI();
+    applyMetricLogic();
     dc.redrawAll();
   };
-  applyMetricToCharts();
-  dc.renderAll();
 
+  // 초기 렌더
+  updateMetricUI();
+  applyMetricLogic();
+  dc.renderAll();
   
   // 디버깅용: 지역별 값 확인
   console.log("metricMapGroup sample:", metricMapGroup.all().slice(0, 10));
 }
-
-
