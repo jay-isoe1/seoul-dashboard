@@ -61,7 +61,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
   });
 
   var gdpDim = ndx.dimension(function(d) {
-    return d.gdp;
+    return d.gdp / 1e6;
   }); 
 
   // --------------------------------------------------
@@ -295,7 +295,7 @@ function makeGraphs(error, crimeJson, seoulJson) {
       label: "GDP",
       dim: gdpDim,
       group: gdpGroup,
-      extent: gdpExtent,
+      extent: d3.extent(data, function(d){ return d.gdp / 1e6; }),
       mapAccessor: function(stats) {
         return stats.gdp_avg;
       },
@@ -488,6 +488,11 @@ function makeGraphs(error, crimeJson, seoulJson) {
       .x(d3.scale.linear().domain(conf.extent))
       .xAxisLabel(conf.label);
 
+    if (metric === "gdp") {
+      rateChart.xAxis().tickFormat(function(v){ return v + "M"; });
+    } else {
+      rateChart.xAxis().tickFormat(d3.format("d"));
+    }
 
     totalND
       .formatNumber(metric === "gdp" ? d3.format(",.2s") : d3.format(",.0f"))
